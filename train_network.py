@@ -3,6 +3,7 @@
 # ====================
 
 # パッケージのインポート
+import os
 from dual_network import DN_INPUT_SHAPE
 from tensorflow.keras.callbacks import LearningRateScheduler, LambdaCallback
 from tensorflow.keras.models import load_model
@@ -14,20 +15,35 @@ import pickle
 # パラメータの準備
 RN_EPOCHS = 100  # 学習回数
 
+MODEL_PATH = os.environ.get('MODEL_PATH', './model')
+DATA_PATH = os.environ.get('DATA_PATH', './data')
 
-def load_data():
+BEST_PATH = os.path.join(MODEL_PATH, 'best.h5')
+LATEST_PATH = os.path.join(MODEL_PATH, 'latest.h5')
+
+
+def load_data(all_history=False):
+
     # 学習データの読み込み
-    history_path = sorted(Path('./data').glob('*.history'))[-1]
-    with history_path.open(mode='rb') as f:
-        return pickle.load(f)
+    history_paths = Path(DATA_PATH).glob('*.history')
+    if not all_history:
+        history_paths = [sorted(history_paths)[-1]]
+
+    data = []
+    for history_path in history_paths:
+        with history_path.open(mode='rb') as f:
+            data += pickle.load(f)
+
+    return data
 
 
-def train_network():
+def train_network(all_history=False):
     '''
     デュアルネットワークの学習
     '''
     # 学習データの読み込み
-    history = load_data()
+    print("hoge", all_history)
+    history = load_data(all_history=all_history)
     xs, y_policies, y_values = zip(*history)
 
     # 学習のための入力データのシェイプの変換
@@ -38,7 +54,7 @@ def train_network():
     y_values = np.array(y_values)
 
     # ベストプレイヤーのモデルの読み込み
-    model = load_model('./model/best.h5')
+    model = load_model(BEST_PATH)
 
     # モデルのコンパイル
     model.compile(loss=['categorical_crossentropy', 'mse'], optimizer='adam')
@@ -64,7 +80,7 @@ def train_network():
     print('')
 
     # 最新プレイヤーのモデルの保存
-    model.save('./model/latest.h5')
+    model.save(LATEST_PATH)
 
     # モデルの破棄
     K.clear_session()
@@ -73,4 +89,4 @@ def train_network():
 
 # 動作確認
 if __name__ == '__main__':
-    train_network()
+    train_network(all_history=True)

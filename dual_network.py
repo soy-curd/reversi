@@ -10,7 +10,7 @@ from tensorflow.keras import backend as K
 import os
 
 BOARD_SIZE = 8
-
+MODEL_PATH = os.environ.get('MODEL_PATH', './model')
 # パラメータの準備
 DN_FILTERS = 128  # 畳み込み層のカーネル数（本家は256）
 DN_RESIDUAL_NUM = 16  # 残差ブロックの数（本家は19）
@@ -51,7 +51,7 @@ def dual_network():
     '''
 
     # モデル作成済みの場合は無処理
-    if os.path.exists('./model/best.h5'):
+    if os.path.exists(os.path.join(MODEL_PATH, 'best.h5')):
         return
 
     # 入力層
@@ -81,8 +81,8 @@ def dual_network():
     model = Model(inputs=input, outputs=[p, v])
 
     # モデルの保存
-    os.makedirs('./model/', exist_ok=True)  # フォルダがない時は生成
-    model.save('./model/best.h5')  # ベストプレイヤーのモデル
+    os.makedirs(MODEL_PATH, exist_ok=True)  # フォルダがない時は生成
+    model.save(os.path.join(MODEL_PATH, 'best.h5'))  # ベストプレイヤーのモデル
 
     # モデルの破棄
     K.clear_session()

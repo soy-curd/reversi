@@ -13,10 +13,19 @@ from pathlib import Path
 import numpy as np
 import pickle
 import os
+import sys
+import time
 
 # パラメータの準備
-SP_GAME_COUNT = 500  # セルフプレイを行うゲーム数（本家は25000）
+# SP_GAME_COUNT = 500  # セルフプレイを行うゲーム数（本家は25000）
+SP_GAME_COUNT = 300  # 500だと2回回せない説
+
 SP_TEMPERATURE = 1.0  # ボルツマン分布の温度パラメータ
+
+MODEL_PATH = os.environ.get('MODEL_PATH', './model')
+DATA_PATH = os.environ.get('DATA_PATH', './data')
+BEST_PATH = os.path.join(MODEL_PATH, 'best.h5')
+LATEST_PATH = os.path.join(MODEL_PATH, 'latest.h5')
 
 
 def first_player_value(ended_state):
@@ -36,9 +45,9 @@ def write_data(history):
     '''
 
     now = datetime.now()
-    os.makedirs('./data/', exist_ok=True)  # フォルダがない時は生成
-    path = './data/{:04}{:02}{:02}{:02}{:02}{:02}.history'.format(
-        now.year, now.month, now.day, now.hour, now.minute, now.second)
+    os.makedirs(DATA_PATH, exist_ok=True)  # フォルダがない時は生成
+    path = os.path.join(DATA_PATH, '{:04}{:02}{:02}{:02}{:02}{:02}.history'.format(
+        now.year, now.month, now.day, now.hour, now.minute, now.second))
     with open(path, mode='wb') as f:
         pickle.dump(history, f)
 
@@ -54,9 +63,13 @@ def play(model):
     # 状態の生成
     state = State()
 
+    starttime = time.time()
+    print('')
     while True:
         # ゲーム終了時
         if state.is_done():
+            endtime = time.time()
+            print('elapsed time',  endtime - starttime)
             break
 
         # 合法手の確率分布の取得
@@ -82,16 +95,17 @@ def play(model):
     return history
 
 
-def self_play():
+def self_play(x=None):
     '''
     セルフプレイ
     '''
+    print("start: ", x)
 
     # 学習データ
     history = []
 
     # ベストプレイヤーのモデルの読み込み
-    model = load_model('./model/best.h5')
+    model = load_model(BEST_PATH)
 
     # 複数回のゲームの実行
     for i in range(SP_GAME_COUNT):
@@ -111,6 +125,25 @@ def self_play():
     del model
 
 
+def do_multi(f=self_play, process_num=2):
+    import random
+    import os
+    import multiprocessing as mp
+    from queue import Empty
+    import math
+    import time
+
+    p = mp.Pool(process_num)
+
+    y = range(process_num)
+
+    results = p.map(f, y)
+
+
 # 動作確認
 if __name__ == '__main__':
-    self_play()
+    is_multi = len(sys.argv) > 1 and sys.argv[1] == 'multi'
+    if is_multi:
+        do_multi(self_play, process_num=6)
+    else:
+        self_play()

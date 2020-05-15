@@ -154,8 +154,10 @@ def boltzman(xs, temperature):
 
 # 動作確認
 if __name__ == '__main__':
+    MODEL_PATH = os.environ.get('MODEL_PATH', './model')
+
     # モデルの読み込み
-    path = sorted(Path('./model').glob('*.h5'))[-1]
+    path = sorted(Path(MODEL_PATH).glob('*.h5'))[-1]
     model = load_model(str(path))
 
     # 状態の生成

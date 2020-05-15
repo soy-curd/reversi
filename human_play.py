@@ -4,6 +4,7 @@
 
 
 import sys
+import os
 
 # パッケージのインポート
 from game import State
@@ -18,9 +19,10 @@ from test_game import mcs_action
 BOARD_SIZE = 8
 ALL_PIECES_NUM = BOARD_SIZE * BOARD_SIZE
 
+MODEL_PATH = os.environ.get('MODEL_PATH', './model')
 
 # ベストプレイヤーのモデルの読み込み
-model = load_model('./model/best.h5')
+model = load_model(os.path.join(MODEL_PATH, 'best.h5'))
 
 
 def get_coodicate(action):

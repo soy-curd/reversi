@@ -2,6 +2,8 @@
 # 新パラメータ評価部
 # ====================
 
+import os
+
 # パッケージのインポート
 from game import State
 from pv_mcts import pv_mcts_action
@@ -14,6 +16,11 @@ import numpy as np
 # パラメータの準備
 EN_GAME_COUNT = 10  # 1評価あたりのゲーム数（本家は400）
 EN_TEMPERATURE = 1.0  # ボルツマン分布の温度
+
+MODEL_PATH = os.environ.get('MODEL_PATH', './model')
+
+BEST_PATH = os.path.join(MODEL_PATH, 'best.h5')
+LATEST_PATH = os.path.join(MODEL_PATH, 'latest.h5')
 
 
 def first_player_point(ended_state):
@@ -58,7 +65,7 @@ def update_best_player():
     ベストプレイヤーの交代
     '''
 
-    copy('./model/latest.h5', './model/best.h5')
+    copy(LATEST_PATH, BEST_PATH)
     print('Change BestPlayer')
 
 
@@ -68,10 +75,10 @@ def evaluate_network():
     '''
 
    # 最新プレイヤーのモデルの読み込み
-    model0 = load_model('./model/latest.h5')
+    model0 = load_model(LATEST_PATH)
 
     # ベストプレイヤーのモデルの読み込み
-    model1 = load_model('./model/best.h5')
+    model1 = load_model(BEST_PATH)
 
     # PV MCTSで行動選択を行う関数の生成
     next_action0 = pv_mcts_action(model0, EN_TEMPERATURE)

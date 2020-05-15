@@ -1,5 +1,6 @@
 
 # パッケージのインポート
+import os
 from game import State, random_action
 from pv_mcts import pv_mcts_action
 from tensorflow.keras.models import load_model
@@ -14,6 +15,10 @@ EN_GAME_COUNT = 100  # 1評価あたりのゲーム数（本家は400）
 EN_GAME_COUNT = 10  # 1評価あたりのゲーム数（本家は400）
 
 EN_TEMPERATURE = 1.0
+MODEL_PATH = os.environ.get('MODEL_PATH', './model')
+
+BEST_PATH = os.path.join(MODEL_PATH, 'best.h5')
+LATEST_PATH = os.path.join(MODEL_PATH, 'latest.h5')
 
 
 def argmax(collection, key=None):
@@ -130,13 +135,6 @@ def mcts_actions(state):
     return legal_actions[argmax(n_list)]
 
 
-def pv_mcts_action(model, temperature=0):
-    def pv_mcts_action(state):
-        scores = pv_mcts_scores(model, state, temperature)
-        return np.random.choice(state.legal_actions(), p=scores)
-    return pv_mcts_action
-
-
 def first_player_point(ended_state):
     # 1:先手勝利, 0:先手敗北, 0.5:引き分け
     if ended_state.is_lose():
@@ -168,12 +166,9 @@ def play(next_actions):
 
 # ネットワークの評価
 def evaluate_network():
-    # # 最新プレイヤーのモデルの読み込み
-    # model0 = load_model('./model/best.h5')
-
-    # # PV MCTSで行動選択を行う関数の生成
-    # next_action0 = pv_mcts_action(model0, EN_TEMPERATURE)
-    next_action0 = mcts_actions
+    model0 = load_model(BEST_PATH)
+    next_action0 = pv_mcts_action(model0, EN_TEMPERATURE)
+    # next_action0 = mcts_actions
     next_action1 = random_action
     next_actions = (next_action0, next_action1)
 
