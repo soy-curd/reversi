@@ -4,7 +4,7 @@
 
 # パッケージのインポート
 from dual_network import dual_network
-from self_play import do_multi
+from self_play import self_play
 from train_network import train_network
 from evaluate_network import evaluate_network
 import time
@@ -15,7 +15,7 @@ def timeit(method):
         ts = time.time()
         result = method(*args, **kw)
         te = time.time()
-        print('{}  {} ms'.format(method.__name__, (te - ts) * 1000))
+        print('{}  {} s'.format(method.__name__, (te - ts)))
         return result
     return timed
 
@@ -26,7 +26,7 @@ dual_network()
 for i in range(10):
     print('Train', i, '====================')
     # セルフプレイ部
-    timeit(do_multi)()
+    timeit(self_play)()
 
     # # パラメータ更新部
     timeit(train_network)(all_history=True)

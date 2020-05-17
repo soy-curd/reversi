@@ -15,10 +15,12 @@ import pickle
 import os
 import sys
 import time
+import random
+from train_network import load_data
 
 # パラメータの準備
 # SP_GAME_COUNT = 500  # セルフプレイを行うゲーム数（本家は25000）
-SP_GAME_COUNT = 300  # 500だと2回回せない説
+SP_GAME_COUNT = 10  # 500だと2回回せない説
 
 SP_TEMPERATURE = 1.0  # ボルツマン分布の温度パラメータ
 
@@ -39,20 +41,49 @@ def first_player_value(ended_state):
     return 0
 
 
-def write_data(history):
+def write_data(history, suffix=""):
     '''
     学習データの保存
     '''
 
     now = datetime.now()
     os.makedirs(DATA_PATH, exist_ok=True)  # フォルダがない時は生成
-    path = os.path.join(DATA_PATH, '{:04}{:02}{:02}{:02}{:02}{:02}.history'.format(
-        now.year, now.month, now.day, now.hour, now.minute, now.second))
+    path = os.path.join(DATA_PATH, '{:04}{:02}{:02}{:02}{:02}{:02}{}.history'.format(
+        now.year, now.month, now.day, now.hour, now.minute, now.microsecond, suffix))
     with open(path, mode='wb') as f:
         pickle.dump(history, f)
 
 
-def play(model):
+def load_state():
+
+    state_paths = Path(DATA_PATH).glob('*.state')
+    state_path = random.choice(list(state_paths))
+    if not state_paths:
+        print("no state")
+        return None
+    with state_path.open(mode='rb') as f:
+        state = pickle.load(f)
+
+    print("state is ", state_path)
+    print(state)
+    return state
+
+
+def save_state(state):
+    now = datetime.now()
+    os.makedirs(DATA_PATH, exist_ok=True)  # フォルダがない時は生成
+    path = os.path.join(DATA_PATH, 'state_{:04}{:02}{:02}{:02}{:02}{:02}.state'.format(
+        now.year, now.month, now.day, now.hour, now.minute, now.microsecond))
+    with open(path, mode='wb') as f:
+        pickle.dump(state, f)
+
+
+def concat_hisotry():
+    data = load_data(all_history=True)
+    write_data(data, suffix="_concated")
+
+
+def play(model, using_saved_state=False, saving_ontheway_state=False):
     '''
     1ゲームの実行
     '''
@@ -61,7 +92,12 @@ def play(model):
     history = []
 
     # 状態の生成
-    state = State()
+    if using_saved_state:
+        state = load_state()
+        if not state:
+            state = State()
+    else:
+        state = State()
 
     starttime = time.time()
     print('')
@@ -69,10 +105,14 @@ def play(model):
         # ゲーム終了時
         if state.is_done():
             endtime = time.time()
+            print("first player is ", "lose" if state.is_lose() else "win")
+            print("first player num:", state.piece_count(state.pieces))
             print('elapsed time',  endtime - starttime)
+            print(state)
             break
 
         # 合法手の確率分布の取得
+
         scores = pv_mcts_scores(model, state, SP_TEMPERATURE)
 
         # 学習データに状態と方策を追加
@@ -82,6 +122,12 @@ def play(model):
         history.append([[state.pieces, state.enemy_pieces], policies, None])
 
         # 行動の取得
+        if len(history) % 10 == 0:
+            print("state len: ", len(history))
+            print(state)
+
+        if saving_ontheway_state and len(history) == 25:
+            save_state(state)
         action = np.random.choice(state.legal_actions(), p=scores)
 
         # 次の状態の取得
@@ -100,6 +146,7 @@ def self_play(x=None):
     セルフプレイ
     '''
     print("start: ", x)
+    np.random.seed()  # マルチプロセス対応
 
     # 学習データ
     history = []
@@ -143,7 +190,13 @@ def do_multi(f=self_play, process_num=2):
 # 動作確認
 if __name__ == '__main__':
     is_multi = len(sys.argv) > 1 and sys.argv[1] == 'multi'
-    if is_multi:
-        do_multi(self_play, process_num=6)
-    else:
-        self_play()
+
+    for n in range(100):
+
+        print("iterate: ", n)
+        if is_multi:
+            process_num = 8
+            print("process: ", process_num)
+            do_multi(self_play, process_num=process_num)
+        else:
+            self_play()

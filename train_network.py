@@ -4,7 +4,7 @@
 
 # パッケージのインポート
 import os
-from dual_network import DN_INPUT_SHAPE
+from dual_network import DN_INPUT_SHAPE, BOARD_SIZE
 from tensorflow.keras.callbacks import LearningRateScheduler, LambdaCallback
 from tensorflow.keras.models import load_model
 from tensorflow.keras import backend as K
@@ -31,8 +31,11 @@ def load_data(all_history=False):
 
     data = []
     for history_path in history_paths:
+        print('loading... ', history_path)
         with history_path.open(mode='rb') as f:
             data += pickle.load(f)
+
+    print("data size is ", len(data) / (BOARD_SIZE * BOARD_SIZE))
 
     return data
 

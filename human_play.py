@@ -67,6 +67,7 @@ class GameUI(tk.Frame):
     def turn_of_human(self, event):
         # ゲーム終了時
         if self.state.is_done():
+            print("first player is ", "lose" if self.state.is_lose() else "win")
             self.state = State()
             self.prev_state = None
             self.on_draw()
@@ -121,6 +122,7 @@ class GameUI(tk.Frame):
     def turn_of_ai(self):
         # ゲーム終了時
         if self.state.is_done():
+            print("first player is ", "lose" if self.state.is_lose() else "win")
             return
 
         # 行動の取得
